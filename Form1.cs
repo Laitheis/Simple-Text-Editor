@@ -9,23 +9,20 @@ namespace Simple_Text_Editor
     {
         private float _fontSize;
         private bool _isModified = false;
-        private string _currentFilePath = null;
+        private string _currentFilePath = @"C:\Users\george\Desktop\поиск работы.txt";
+        private bool _isFirstLaunch = true;
+        private string _text;
+        private bool _isTextChangedFromLoad;
 
         public Form1()
         {
-            InitializeComponent();
-
-            this.richTextBox1.MouseWheel += RichTextBox1_MouseWheel;
-            UpdateWindowTitle();
-        }
-
-        public Form1(string filePath) : this()
-        {
+#if DEBUG
+            string filePath = @"C:\Users\george\Desktop\поиск работы.txt";
             if (File.Exists(filePath))
             {
                 try
                 {
-                    richTextBox1.Text = File.ReadAllText(filePath);
+                    _text = File.ReadAllText(filePath);
                     _currentFilePath = filePath;
                 }
                 catch (Exception ex)
@@ -33,6 +30,55 @@ namespace Simple_Text_Editor
                     MessageBox.Show("Не удалось открыть файл:\n" + ex.Message);
                 }
             }
+#endif
+            Init();
+        }
+
+        private void Init()
+        {
+            InitializeComponent();
+
+            this.richTextBox1.MouseWheel += RichTextBox1_MouseWheel;
+            string exeDir = AppDomain.CurrentDomain.BaseDirectory;
+            UpdateWindowTitle();
+            string[] args = Environment.GetCommandLineArgs();
+            if (args.Length > 1)
+            {
+                if (_text != "")
+                {
+                    _isTextChangedFromLoad = true;
+                    richTextBox1.Text = _text;
+                    Refresh();
+                }
+            }
+#if DEBUG
+            if (args.Length > 0)
+            {
+                if (_text != "")
+                {
+                    _isTextChangedFromLoad = true;
+                    richTextBox1.Text = _text;
+                    Refresh();
+                }
+            }
+#endif
+        }
+
+        public Form1(string filePath)
+        {
+            if (File.Exists(filePath))
+            {
+                try
+                {
+                    _text = File.ReadAllText(filePath);
+                    _currentFilePath = filePath;
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Не удалось открыть файл:\n" + ex.Message);
+                }
+            }
+            Init();
         }
 
         private void Form1_KeyDown(object sender, KeyEventArgs e)
@@ -79,7 +125,7 @@ namespace Simple_Text_Editor
             if ((Control.ModifierKeys & Keys.Control) == Keys.Control)
             {
                 ((HandledMouseEventArgs)e).Handled = true;
-                
+
                 _fontSize = Math.Max(6f, _fontSize + e.Delta * 0.03f);
                 _fontSize = (float)Math.Round(_fontSize);
                 ResetFont(_fontSize);
@@ -148,11 +194,12 @@ namespace Simple_Text_Editor
 
         private void richTextBox1_TextChanged(object sender, EventArgs e)
         {
-            if (!_isModified)
+            if (!_isTextChangedFromLoad)
             {
                 _isModified = true;
                 UpdateWindowTitle();
             }
+            _isTextChangedFromLoad = false;
             label1.Text = "Размер шрифта: " + richTextBox1.Font.Size + "   Количество символов: " + richTextBox1.Text.Length;
         }
 
@@ -162,8 +209,15 @@ namespace Simple_Text_Editor
                 ? Path.GetFileName(_currentFilePath)
                 : "Без имени";
 
+            //if(_isFirstLaunch)
+            //{
+            //    this.Text = $"{fileName} - Simple Text Editor";
+            //    _isFirstLaunch = false;
+            //    return;
+            //}
+
             this.Text = _isModified
-                ? $"{fileName} * - Simple Text Editor"
+                ? $"{fileName}* - Simple Text Editor"
                 : $"{fileName} - Simple Text Editor";
         }
     }
